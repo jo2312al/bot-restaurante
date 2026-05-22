@@ -1,0 +1,19 @@
+node_modules/
+npm-debug.log*
+
+# WhatsApp/Baileys session credentials
+auth/
+
+# Runtime logs
+logs/
+*.log
+
+# Local environment files
+.env
+.env.*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
