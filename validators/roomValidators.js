@@ -4,7 +4,7 @@ function validateQuantity(quantity) {
 
     const qty = Number(quantity);
 
-    if (isNaN(qty)) return false;
+    if (!Number.isInteger(qty)) return false;
 
     return qty >= 1 && qty <= MAX_QUANTITY;
 
@@ -12,17 +12,17 @@ function validateQuantity(quantity) {
 
 function validateRoom(room) {
 
-    return /^[0-9]+$/.test(room);
+    return /^[0-9]+$/.test(String(room).trim());
 
 }
 
 function validateName(name) {
 
-    const regex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+    const trimmedName = String(name).trim();
+    const regex = /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s'.-]+$/;
+    const words = trimmedName.split(/\s+/);
 
-    const words = name.trim().split(" ");
-
-    return regex.test(name) && words.length >= 2;
+    return regex.test(trimmedName) && words.length >= 2;
 
 }
 

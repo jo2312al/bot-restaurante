@@ -18,6 +18,31 @@ function calculateTotal(cart) {
 
 }
 
+function formatCart(cart) {
+
+    if (!cart.length) {
+        return "🛒 Tu carrito está vacío.\n\nEscribe menu para ver productos.";
+    }
+
+    let text = "🛒 TU PEDIDO\n\n";
+
+    cart.forEach((item, index) => {
+
+        text += `${index + 1}. ${item.quantity}x ${item.name} - $${calculateItemTotal(item)}\n`;
+
+        if (item.note) {
+            text += `   Nota: ${item.note}\n`;
+        }
+
+    });
+
+    text += `\n💰 TOTAL: $${calculateTotal(cart)}\n\n`;
+    text += "Escribe confirmar para finalizar, menu para agregar más o 0 para cancelar.";
+
+    return text;
+
+}
+
 function clearCart(user) {
 
     user.cart = [];
@@ -28,5 +53,6 @@ module.exports = {
     addToCart,
     calculateItemTotal,
     calculateTotal,
+    formatCart,
     clearCart
 };

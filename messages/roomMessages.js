@@ -1,23 +1,22 @@
 module.exports = {
 
     mainMenu: `
-🍽️ SERVICIO AL CUARTO
+🍽️ SERVICIO A LA HABITACIÓN
 
 ¿Qué deseas hacer?
 
-1️⃣ Ver menú
-2️⃣ Ver carrito
-3️⃣ Confirmar pedido
-4️⃣ Cancelar pedido
+1. Ver menú
+2. Ver carrito
+3. Confirmar pedido
+4. Cancelar pedido
 `,
 
     closedMessage: `
-⚠️ Servicio al cuarto cerrado
+⚠️ Servicio a la habitación cerrado
 
 🕒 Horario:
 
 7:00 AM - 12:00 PM
-
 6:00 PM - 11:00 PM
 `,
 
@@ -28,14 +27,14 @@ module.exports = {
     invalidQuantity: `
 ⚠️ Cantidad inválida
 
-Máximo permitido: 10
+Escribe un número del 1 al 10.
 `,
 
     askNote: `
 ¿Deseas agregar una nota?
 
-1️⃣ Sí
-2️⃣ No
+1. Sí
+2. No
 `,
 
     askNoteText: `
@@ -50,8 +49,8 @@ sin picante
     confirmOrder: `
 ¿Confirmas tu pedido?
 
-1️⃣ Confirmar
-2️⃣ Cancelar
+1. Confirmar
+2. Cancelar
 `
 
 };

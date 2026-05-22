@@ -1,5 +1,4 @@
 const userState = require("../state/userState");
-
 const menu = require("../data/menu");
 
 const {
@@ -11,311 +10,218 @@ const {
 const {
     addToCart,
     calculateTotal,
-    clearCart
+    clearCart,
+    formatCart
 } = require("../services/cartService");
 
-const {
-    sendMessage
-} = require("../services/whatsappService");
-
-const {
-    GROUP_ID
-} = require("../config/config");
-
+const { sendMessage } = require("../services/whatsappService");
+const { GROUP_ID } = require("../config/config");
 const messages = require("../messages/roomMessages");
+const { generateMenu } = require("../flows/roomServiceFlow");
 
-const {
-    generateMenu
-} = require("../flows/roomServiceFlow");
+function clearTempProduct(user) {
+
+    delete user.tempProduct;
+    delete user.tempQuantity;
+
+}
+
+function addTempProductToCart(user, note = "") {
+
+    addToCart(user.cart, {
+        ...user.tempProduct,
+        quantity: user.tempQuantity,
+        note
+    });
+
+    clearTempProduct(user);
+    user.step = "SELECT_PRODUCT";
+
+}
+
+function nextActionMessage(user) {
+
+    return [
+        "✅ Producto agregado al carrito.",
+        "",
+        formatCart(user.cart),
+        "",
+        "Para agregar otro producto, escribe su número.",
+        "Para ver el menú completo, escribe menu."
+    ].join("\n");
+
+}
 
 async function roomServiceHandler(sock, from, text) {
 
     const user = userState[from];
-
-    // SELECCIONAR PRODUCTO
+    const rawText = String(text || "").trim();
+    const lower = rawText.toLowerCase();
 
     if (user.step === "SELECT_PRODUCT") {
 
-        const product = menu.find(p => p.id === text);
+        if (["menu", "menú", "ver menu", "ver menú"].includes(lower)) {
+            return sendMessage(sock, from, generateMenu());
+        }
 
-        if (!product) {
+        if (["carrito", "ver carrito"].includes(lower)) {
+            return sendMessage(sock, from, formatCart(user.cart));
+        }
 
-            return sendMessage(
-                sock,
-                from,
-                "❌ Producto inválido"
-            );
+        if (["confirmar", "finalizar", "pedido"].includes(lower)) {
+
+            if (!user.cart.length) {
+                return sendMessage(sock, from, "🛒 Aún no tienes productos. Responde con el número de un producto.");
+            }
+
+            user.step = "WAITING_CONFIRM";
+            return sendMessage(sock, from, `${formatCart(user.cart)}\n\n${messages.confirmOrder}`);
 
         }
 
-        user.tempProduct = product;
+        const product = menu.find(item => item.id === lower);
 
+        if (!product) {
+            return sendMessage(
+                sock,
+                from,
+                "❌ Producto inválido.\n\nResponde con un número del menú, carrito, confirmar, menu o 0 para cancelar."
+            );
+        }
+
+        user.tempProduct = product;
         user.step = "WAITING_QUANTITY";
 
         return sendMessage(
             sock,
             from,
-            messages.askQuantity
+            [
+                `Elegiste: ${product.name}`,
+                `Precio: $${product.price}`,
+                product.description ? `Detalle: ${product.description}` : "",
+                "",
+                messages.askQuantity.trim()
+            ].filter(Boolean).join("\n")
         );
 
     }
-
-    // CANTIDAD
 
     if (user.step === "WAITING_QUANTITY") {
 
-        if (!validateQuantity(text)) {
-
-            return sendMessage(
-                sock,
-                from,
-                messages.invalidQuantity
-            );
-
+        if (!validateQuantity(lower)) {
+            return sendMessage(sock, from, messages.invalidQuantity);
         }
 
-        user.tempQuantity = Number(text);
-
+        user.tempQuantity = Number(lower);
         user.step = "WAITING_NOTE_OPTION";
 
-        return sendMessage(
-            sock,
-            from,
-            messages.askNote
-        );
+        return sendMessage(sock, from, messages.askNote);
 
     }
-
-    // NOTA OPCIÓN
 
     if (user.step === "WAITING_NOTE_OPTION") {
 
-        // CON NOTA
-
-        if (text === "1") {
-
+        if (["1", "si", "sí", "con nota"].includes(lower)) {
             user.step = "WAITING_NOTE_TEXT";
-
-            return sendMessage(
-                sock,
-                from,
-                messages.askNoteText
-            );
-
+            return sendMessage(sock, from, messages.askNoteText);
         }
 
-        // SIN NOTA
-
-        if (text === "2") {
-
-            addToCart(user.cart, {
-
-                ...user.tempProduct,
-
-                quantity: user.tempQuantity,
-
-                note: ""
-
-            });
-
-            user.step = null;
-
-            return sendMessage(
-                sock,
-                from,
-                `
-✅ Producto agregado al carrito
-
-${generateMenu()}
-
-🛒 Escribe otro número para agregar más productos
-
-o escribe:
-
-2️⃣ Ver carrito
-3️⃣ Confirmar pedido
-`
-            );
-
+        if (["2", "no", "sin nota"].includes(lower)) {
+            addTempProductToCart(user);
+            return sendMessage(sock, from, nextActionMessage(user));
         }
+
+        return sendMessage(sock, from, "Responde 1 para agregar nota o 2 para continuar sin nota.");
 
     }
-
-    // GUARDAR NOTA
 
     if (user.step === "WAITING_NOTE_TEXT") {
 
-        addToCart(user.cart, {
-
-            ...user.tempProduct,
-
-            quantity: user.tempQuantity,
-
-            note: text
-
-        });
-
-        user.step = null;
-
-        return sendMessage(
-            sock,
-            from,
-            `
-✅ Producto agregado al carrito
-
-${generateMenu()}
-
-🛒 Escribe otro número para agregar más productos
-
-o escribe:
-
-2️⃣ Ver carrito
-3️⃣ Confirmar pedido
-`
-        );
+        addTempProductToCart(user, rawText);
+        return sendMessage(sock, from, nextActionMessage(user));
 
     }
-
-    // CONFIRMAR PEDIDO
 
     if (user.step === "WAITING_CONFIRM") {
 
-        if (text === "1") {
+        if (["carrito", "ver carrito"].includes(lower)) {
+            return sendMessage(sock, from, `${formatCart(user.cart)}\n\n${messages.confirmOrder}`);
+        }
 
+        if (["1", "si", "sí", "confirmar"].includes(lower)) {
             user.step = "WAITING_ROOM";
-
-            return sendMessage(
-                sock,
-                from,
-                "🏨 Escribe tu número de habitación"
-            );
-
+            return sendMessage(sock, from, "🏨 Escribe tu número de habitación.");
         }
 
-        if (text === "2") {
-
+        if (["2", "no", "cancelar"].includes(lower)) {
             clearCart(user);
-
+            clearTempProduct(user);
             user.step = null;
-
-            return sendMessage(
-                sock,
-                from,
-                "❌ Pedido cancelado"
-            );
-
+            user.data = {};
+            return sendMessage(sock, from, "❌ Pedido cancelado. Escribe menu para iniciar uno nuevo.");
         }
+
+        return sendMessage(sock, from, messages.confirmOrder);
 
     }
-
-    // HABITACIÓN
 
     if (user.step === "WAITING_ROOM") {
 
-        if (!validateRoom(text)) {
-
-            return sendMessage(
-                sock,
-                from,
-                "❌ Número de habitación inválido"
-            );
-
+        if (!validateRoom(rawText)) {
+            return sendMessage(sock, from, "❌ Número de habitación inválido. Usa solo números.");
         }
 
-        user.data.room = text;
-
+        user.data.room = rawText;
         user.step = "WAITING_NAME";
 
-        return sendMessage(
-            sock,
-            from,
-            "👤 Escribe nombre completo"
-        );
+        return sendMessage(sock, from, "👤 Escribe tu nombre completo.");
 
     }
 
-    // NOMBRE
-
     if (user.step === "WAITING_NAME") {
 
-        if (!validateName(text)) {
-
-            return sendMessage(
-                sock,
-                from,
-                "❌ Nombre inválido"
-            );
-
+        if (!validateName(rawText)) {
+            return sendMessage(sock, from, "❌ Nombre inválido. Escribe nombre y apellido.");
         }
 
-        user.data.name = text;
+        user.data.name = rawText;
 
         const total = calculateTotal(user.cart);
 
-        let orderText = `
-🍽️ NUEVO PEDIDO
-
-🏨 Habitación: ${user.data.room}
-
-👤 ${user.data.name}
-
-🛒 PEDIDO
-
-`;
+        let orderText = [
+            "🍽️ NUEVO PEDIDO",
+            "",
+            `🏨 Habitación: ${user.data.room}`,
+            `👤 Cliente: ${user.data.name}`,
+            "",
+            "🛒 PEDIDO",
+            ""
+        ].join("\n");
 
         user.cart.forEach(item => {
 
-            orderText += `${item.quantity}x ${item.name}\n`;
+            orderText += `${item.quantity}x ${item.name} - $${item.price * item.quantity}\n`;
 
             if (item.note) {
-
-                orderText += `📝 ${item.note}\n`;
-
+                orderText += `Nota: ${item.note}\n`;
             }
 
         });
 
-        orderText += `
+        orderText += `\n💰 TOTAL: $${total}\n\n⏳ Tiempo estimado: 30-40 minutos`;
 
-💰 TOTAL: $${total}
-
-⏳ Tiempo estimado:
-30-40 minutos
-`;
-
-        // ENVIAR A COCINA
-
-        await sendMessage(
-            sock,
-            GROUP_ID,
-            orderText
-        );
-
-        // MENSAJE CLIENTE
+        await sendMessage(sock, GROUP_ID, orderText);
 
         await sendMessage(
             sock,
             from,
-            `
-✅ PEDIDO CONFIRMADO
-
-💰 TOTAL: $${total}
-
-⏳ Tiempo estimado:
-30-40 minutos
-`
+            `✅ PEDIDO CONFIRMADO\n\n💰 TOTAL: $${total}\n\n⏳ Tiempo estimado: 30-40 minutos`
         );
 
-        // RESETEAR
-
         userState[from] = {
-
             step: null,
-
             cart: [],
-
             data: {}
-
         };
 
     }

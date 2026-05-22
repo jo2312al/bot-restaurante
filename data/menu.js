@@ -1,59 +1,53 @@
 module.exports = [
-
-    {
-        id: "1",
-        category: "COMIDA",
-        name: "Hamburguesa Clásica",
-        price: 130
-    },
-
-    {
-        id: "2",
-        category: "COMIDA",
-        name: "Club Sandwich Margaritas",
-        price: 150
-    },
-
-    {
-        id: "3",
-        category: "COMIDA",
-        name: "Hot Dog",
-        price: 120
-    },
-
-    {
-        id: "4",
-        category: "BEBIDAS",
-        name: "Coca Cola",
-        price: 40
-    },
-
-    {
-        id: "5",
-        category: "BEBIDAS",
-        name: "Botella de Agua",
-        price: 35
-    },
-
-    {
-        id: "6",
-        category: "SNACKS",
-        name: "Papas a la Francesa",
-        price: 55
-    },
-
-    {
-        id: "7",
-        category: "DESAYUNOS",
-        name: "Hot Cakes",
-        price: 100
-    },
-
-    {
-        id: "8",
-        category: "DESAYUNOS",
-        name: "Chilaquiles con Pollo",
-        price: 130
-    }
-
+    { id: "1", category: "Desayunos", name: "Plato de frutas natural", price: 70, description: "Fruta de la estacion." },
+    { id: "2", category: "Desayunos", name: "Plato de frutas con granola, miel y yogurt", price: 80, description: "Fruta de la estacion con granola, miel y yogurt." },
+    { id: "3", category: "Desayunos", name: "Hotcakes naturales", price: 100, description: "Orden de hotcakes naturales." },
+    { id: "4", category: "Desayunos", name: "Hotcakes con jamon o tocino", price: 120, description: "Orden de hotcakes con jamon o tocino." },
+    { id: "5", category: "Desayunos", name: "Huevos revueltos", price: 100, description: "2 huevos con jamon, tocino, salchicha o a la mexicana; con frijoles refritos y platanitos." },
+    { id: "6", category: "Desayunos", name: "Huevos estrellados", price: 100, description: "2 huevos al termino de su preferencia, con frijoles refritos y platanitos." },
+    { id: "7", category: "Desayunos", name: "Huevos divorciados", price: 120, description: "2 huevos fritos montados en tortilla con salsa roja y verde, frijoles refritos y platanitos." },
+    { id: "8", category: "Desayunos", name: "Huevos motuleños Margaritas", price: 150, description: "Huevos sobre tortilla con frijol negro, salsa de tomate, crema, queso, chicharos y platanitos." },
+    { id: "9", category: "Desayunos", name: "Huevos revueltos especiales", price: 130, description: "Huevos revueltos naturales con chilaquiles verdes o rojos y frijoles refritos." },
+    { id: "10", category: "Desayunos", name: "Omelette de jamon y queso", price: 120, description: "3 huevos frescos con jamon y queso, acompañados con frijoles refritos." },
+    { id: "11", category: "Desayunos", name: "Paquete americano", price: 60, description: "Agrega a tu desayuno jugo o fruta y cafe o te. Incluye 1 taza de refil." },
+    { id: "12", category: "Antojitos", name: "Chilaquiles naturales", price: 100, description: "Tortillas fritas bañadas en salsa verde o roja, con crema, queso y cebolla." },
+    { id: "13", category: "Antojitos", name: "Chilaquiles con pollo o huevo", price: 130, description: "Chilaquiles verdes o rojos con pollo o huevo, crema, queso y cebolla." },
+    { id: "14", category: "Antojitos", name: "Enchiladas verdes o rojas", price: 140, description: "Enchiladas de pollo o carne con salsa roja o verde, crema, queso, cebolla y frijoles refritos." },
+    { id: "15", category: "Antojitos", name: "Enchiladas de mole con arroz o frijol", price: 140, description: "Enchiladas de pollo o carne con mole artesanal tabasqueño, crema, queso y cebolla." },
+    { id: "16", category: "Antojitos", name: "Enfrijoladas", price: 140, description: "Rellenas de pollo o huevo con frijoles molidos, queso fresco, cebolla y platanitos fritos." },
+    { id: "17", category: "Antojitos", name: "Salbutes", price: 100, description: "Orden de 3 salbutes de pollo o res con crema, lechuga, queso, aguacate, salsa verde y habaneros." },
+    { id: "18", category: "Antojitos", name: "Tacos dorados", price: 100, description: "Orden de 6 tacos dorados de pollo o res con lechuga, queso, crema, salsa verde y habaneros." },
+    { id: "19", category: "Antojitos", name: "Quesadillas", price: 120, description: "Orden de 3 tortillas de harina o maiz rellenas de jamon y queso fresco de hebra." },
+    { id: "20", category: "Especialidades tabasqueñas", name: "Empanadas Margaritas", price: 90, description: "Orden de 3 empanadas de maiz rellenas de pollo, res o queso, con ensalada, salsa verde y habaneros." },
+    { id: "21", category: "Especialidades tabasqueñas", name: "Tamalito de chipilin", price: 120, description: "Tamalito tradicional de chipilin." },
+    { id: "22", category: "Especialidades tabasqueñas", name: "Platano relleno", price: 65, description: "Platano relleno tradicional." },
+    { id: "23", category: "Especialidades tabasqueñas", name: "Empanadas de queso con azucar", price: 90, description: "Empanadas dulces de queso con azucar." },
+    { id: "24", category: "Comida o cena", name: "Espagueti a la boloñesa", price: 130, description: "Espagueti con salsa boloñesa." },
+    { id: "25", category: "Comida o cena", name: "Ensalada de atun o pollo", price: 110, description: "Ensalada con atun o pollo." },
+    { id: "26", category: "Comida o cena", name: "Consome de pollo", price: 120, description: "Consome de pollo." },
+    { id: "27", category: "Comida o cena", name: "Pollo a la parrilla con verduras al vapor", price: 200, description: "Pollo a la parrilla acompañado de verduras al vapor." },
+    { id: "28", category: "Comida o cena", name: "Fajitas de pollo o res", price: 200, description: "Fajitas de pollo o res." },
+    { id: "29", category: "Comida o cena", name: "Milanesa de pollo o res", price: 200, description: "Milanesa de pollo o res." },
+    { id: "30", category: "Comida o cena", name: "Hamburguesa clasica", price: 130, description: "Hamburguesa clasica." },
+    { id: "31", category: "Comida o cena", name: "Hamburguesa hawaiana", price: 150, description: "Hamburguesa hawaiana." },
+    { id: "32", category: "Comida o cena", name: "Hot dog", price: 120, description: "Hot dog." },
+    { id: "33", category: "Comida o cena", name: "Sandwich de jamon o pollo", price: 120, description: "Sandwich de jamon o pollo." },
+    { id: "34", category: "Comida o cena", name: "Club sandwich Margaritas", price: 150, description: "Club sandwich Margaritas." },
+    { id: "35", category: "Medias ordenes", name: "Orden de pan tostado", price: 45, description: "Media orden de pan tostado." },
+    { id: "36", category: "Medias ordenes", name: "Orden de frijol", price: 45, description: "Media orden de frijol." },
+    { id: "37", category: "Medias ordenes", name: "Orden de platanos fritos", price: 45, description: "Media orden de platanos fritos." },
+    { id: "38", category: "Medias ordenes", name: "Orden de papas a la francesa", price: 55, description: "Media orden de papas a la francesa." },
+    { id: "39", category: "Bebidas", name: "Jugo de naranja", price: 40, description: "Jugo de naranja." },
+    { id: "40", category: "Bebidas", name: "Jugo verde", price: 45, description: "Jugo verde." },
+    { id: "41", category: "Bebidas", name: "Cafe americano", price: 30, description: "Cafe americano." },
+    { id: "42", category: "Bebidas", name: "Cafe lechero", price: 45, description: "Cafe lechero." },
+    { id: "43", category: "Bebidas", name: "Vaso de leche", price: 35, description: "Vaso de leche." },
+    { id: "44", category: "Bebidas", name: "Te de sabores", price: 30, description: "Te de sabores." },
+    { id: "45", category: "Bebidas", name: "Copa de aguas frescas", price: 50, description: "Copa de aguas frescas." },
+    { id: "46", category: "Bebidas", name: "Jarra de aguas frescas", price: 90, description: "Jarra de aguas frescas." },
+    { id: "47", category: "Bebidas", name: "Choco-milk chico", price: 55, description: "Choco-milk chico." },
+    { id: "48", category: "Bebidas", name: "Choco-milk grande", price: 80, description: "Choco-milk grande." },
+    { id: "49", category: "Bebidas", name: "Coca Cola", price: 40, description: "Refresco Coca Cola." },
+    { id: "50", category: "Bebidas", name: "Botella de agua", price: 35, description: "Botella de agua." },
+    { id: "51", category: "Bebidas", name: "Malteada de fresa, chocolate o vainilla", price: 80, description: "Malteada sabor fresa, chocolate o vainilla." }
 ];

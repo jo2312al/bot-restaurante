@@ -38,7 +38,6 @@ async function startBot() {
             qr
         } = update;
 
-        // MOSTRAR QR
         if (qr) {
 
             console.log("📲 ESCANEA ESTE QR:\n");
@@ -49,16 +48,13 @@ async function startBot() {
 
         }
 
-        // CONECTADO
         if (connection === "open") {
 
             console.log("✅ BOT CONECTADO");
-
             loggerService.log("BOT CONECTADO");
 
         }
 
-        // DESCONECTADO
         if (connection === "close") {
 
             console.log("❌ Conexión cerrada");
@@ -69,7 +65,6 @@ async function startBot() {
             if (shouldReconnect) {
 
                 console.log("🔄 Reconectando...");
-
                 startBot();
 
             }

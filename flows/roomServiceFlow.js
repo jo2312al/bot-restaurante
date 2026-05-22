@@ -14,21 +14,24 @@ function generateMenu() {
 
     });
 
-    let text = "🍽️ MENÚ\n\n";
+    let text = "🍽️ MENÚ ROOM SERVICE\n\n";
 
     Object.keys(grouped).forEach(category => {
 
-        text += `📌 ${category}\n\n`;
+        text += `📌 ${category}\n`;
 
         grouped[category].forEach(item => {
 
-            text += `${item.id}️⃣ ${item.name} - $${item.price}\n`;
+            text += `${item.id}. ${item.name} - $${item.price}\n`;
 
         });
 
         text += "\n";
 
     });
+
+    text += "Responde con el número del producto.\n";
+    text += "También puedes escribir: carrito, confirmar, menu o 0 para cancelar.";
 
     return text;
 
