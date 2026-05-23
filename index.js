@@ -47,8 +47,6 @@ async function startBot() {
 
             auth: state,
 
-            printQRInTerminal: true,
-
             logger: pino({
 
                 level: "silent"
@@ -57,9 +55,11 @@ async function startBot() {
 
             browser: [
 
-                "Ubuntu",
+                "Bot Restaurante",
+
                 "Chrome",
-                "20.0.04"
+
+                "1.0.0"
 
             ]
 
@@ -218,6 +218,19 @@ async function startBot() {
 
                     if (
                         !message.message
+                    ) {
+
+                        return;
+
+                    }
+
+                    // ======================
+                    // IGNORAR STATUS
+                    // ======================
+
+                    if (
+                        message.key.remoteJid ===
+                        "status@broadcast"
                     ) {
 
                         return;
