@@ -1,90 +1,286 @@
 const {
+
     default: makeWASocket,
     useMultiFileAuthState,
     DisconnectReason
+
 } = require("@whiskeysockets/baileys");
 
-const pino = require("pino");
-const qrcode = require("qrcode-terminal");
+const pino =
+    require("pino");
 
-const messageHandler = require("./handlers/messageHandler");
-const loggerService = require("./services/loggerService");
+const qrcode =
+    require("qrcode-terminal");
+
+const messageHandler =
+    require("./handlers/messageHandler");
+
+const loggerService =
+    require("./services/loggerService");
+
+// ==========================================
+// START BOT
+// ==========================================
 
 async function startBot() {
 
-    console.log("🚀 Iniciando bot...");
+    try {
 
-    const { state, saveCreds } = await useMultiFileAuthState("./auth");
+        console.log("🚀 Iniciando bot...");
 
-    const sock = makeWASocket({
-
-        auth: state,
-
-        logger: pino({
-            level: "silent"
-        }),
-
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
-
-    });
-
-    sock.ev.on("creds.update", saveCreds);
-
-    sock.ev.on("connection.update", async (update) => {
+        // ==================================
+        // AUTH
+        // ==================================
 
         const {
-            connection,
-            lastDisconnect,
-            qr
-        } = update;
 
-        if (qr) {
+            state,
+            saveCreds
 
-            console.log("📲 ESCANEA ESTE QR:\n");
+        } = await useMultiFileAuthState("./auth");
 
-            qrcode.generate(qr, {
-                small: true
-            });
+        // ==================================
+        // SOCKET
+        // ==================================
 
-        }
+        const sock = makeWASocket({
 
-        if (connection === "open") {
+            auth: state,
 
-            console.log("✅ BOT CONECTADO");
-            loggerService.log("BOT CONECTADO");
+            printQRInTerminal: true,
 
-        }
+            logger: pino({
 
-        if (connection === "close") {
+                level: "silent"
 
-            console.log("❌ Conexión cerrada");
+            }),
 
-            const shouldReconnect =
-                lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            browser: [
 
-            if (shouldReconnect) {
+                "Ubuntu",
+                "Chrome",
+                "20.0.04"
 
-                console.log("🔄 Reconectando...");
-                startBot();
+            ]
+
+        });
+
+        // ==================================
+        // SAVE CREDS
+        // ==================================
+
+        sock.ev.on(
+
+            "creds.update",
+
+            saveCreds
+
+        );
+
+        // ==================================
+        // CONNECTION UPDATE
+        // ==================================
+
+        sock.ev.on(
+
+            "connection.update",
+
+            async (update) => {
+
+                const {
+
+                    connection,
+                    lastDisconnect,
+                    qr
+
+                } = update;
+
+                // ==========================
+                // QR
+                // ==========================
+
+                if (qr) {
+
+                    console.log("\n📲 ESCANEA ESTE QR:\n");
+
+                    qrcode.generate(
+
+                        qr,
+
+                        {
+                            small: true
+                        }
+
+                    );
+
+                }
+
+                // ==========================
+                // OPEN
+                // ==========================
+
+                if (
+                    connection === "open"
+                ) {
+
+                    console.log("✅ BOT CONECTADO");
+
+                    loggerService.log(
+                        "BOT CONECTADO"
+                    );
+
+                }
+
+                // ==========================
+                // CLOSE
+                // ==========================
+
+                if (
+                    connection === "close"
+                ) {
+
+                    console.log("❌ Conexión cerrada");
+
+                    console.log(
+
+                        lastDisconnect?.error
+
+                    );
+
+                    const shouldReconnect =
+
+                        lastDisconnect?.error?.output?.statusCode
+
+                        !==
+
+                        DisconnectReason.loggedOut;
+
+                    // ======================
+                    // RECONNECT
+                    // ======================
+
+                    if (
+                        shouldReconnect
+                    ) {
+
+                        console.log(
+
+                            "🔄 Reconectando en 5 segundos..."
+
+                        );
+
+                        setTimeout(() => {
+
+                            startBot();
+
+                        }, 5000);
+
+                    }
+
+                    // ======================
+                    // LOGGED OUT
+                    // ======================
+
+                    else {
+
+                        console.log(
+
+                            "🚫 Sesión cerrada. Escanea QR nuevamente."
+
+                        );
+
+                    }
+
+                }
 
             }
 
-        }
+        );
 
-    });
+        // ==================================
+        // MESSAGES
+        // ==================================
 
-    sock.ev.on("messages.upsert", async ({ messages }) => {
+        sock.ev.on(
 
-        const message = messages[0];
+            "messages.upsert",
 
-        if (!message.message) return;
+            async ({ messages }) => {
 
-        console.log("📩 Nuevo mensaje");
+                try {
 
-        await messageHandler(sock, message);
+                    const message =
+                        messages[0];
 
-    });
+                    // ======================
+                    // VALIDAR
+                    // ======================
+
+                    if (
+                        !message.message
+                    ) {
+
+                        return;
+
+                    }
+
+                    console.log("📩 Nuevo mensaje");
+
+                    // ======================
+                    // HANDLER
+                    // ======================
+
+                    await messageHandler(
+
+                        sock,
+                        message
+
+                    );
+
+                }
+
+                // ==========================
+                // ERROR MENSAJE
+                // ==========================
+
+                catch (error) {
+
+                    console.log(
+
+                        "❌ Error procesando mensaje"
+
+                    );
+
+                    console.log(error);
+
+                }
+
+            }
+
+        );
+
+    }
+
+    // ======================================
+    // ERROR START BOT
+    // ======================================
+
+    catch (error) {
+
+        console.log(
+
+            "❌ Error iniciando bot"
+
+        );
+
+        console.log(error);
+
+    }
 
 }
+
+// ==========================================
+// INIT
+// ==========================================
 
 startBot();
