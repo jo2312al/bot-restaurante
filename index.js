@@ -1,19 +1,34 @@
 const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    DisconnectReason,
-    fetchLatestBaileysVersion
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
 
-const pino = require("pino");
+const pino =
+  require("pino");
 
-const qrcode = require("qrcode-terminal");
+const qrcode =
+  require("qrcode-terminal");
+
+const log =
+  require("./services/loggerService");
 
 const messageHandler =
-    require("./handlers/messageHandler");
+  require("./handlers/messageHandler");
 
-const loggerService =
-    require("./services/loggerService");
+// ==========================================
+// DELAY
+// ==========================================
+
+function delay(ms) {
+
+  return new Promise(
+    resolve =>
+      setTimeout(resolve, ms)
+  );
+
+}
 
 // ==========================================
 // START BOT
@@ -21,267 +36,332 @@ const loggerService =
 
 async function startBot() {
 
-    try {
+  console.log(
+    "🚀 Iniciando bot restaurante..."
+  );
 
-        console.log("🚀 Iniciando bot...");
+  // ========================================
+  // AUTH
+  // ========================================
 
-        // ==================================
-        // VERSION
-        // ==================================
+  const {
+    state,
+    saveCreds
+  } =
+    await useMultiFileAuthState(
+      "auth"
+    );
 
-        const {
-            version
-        } = await fetchLatestBaileysVersion();
+  // ========================================
+  // VERSION
+  // ========================================
+
+  const {
+    version
+  } =
+    await fetchLatestBaileysVersion();
+
+  console.log(
+    "📦 Versión:",
+    version
+  );
+
+  // ========================================
+  // SOCKET
+  // ========================================
+
+  const sock =
+    makeWASocket({
+
+      version,
+
+      logger: pino({
+        level: "silent"
+      }),
+
+      auth: state,
+
+      browser: [
+
+        "Bot Restaurante",
+
+        "Chrome",
+
+        "1.0"
+
+      ]
+
+    });
+
+  // ========================================
+  // DELAY MENSAJES
+  // ========================================
+
+  const originalSendMessage =
+    sock.sendMessage.bind(sock);
+
+  sock.sendMessage =
+    async (...args) => {
+
+      await delay(1500);
+
+      return originalSendMessage(
+        ...args
+      );
+
+    };
+
+  // ========================================
+  // SAVE CREDS
+  // ========================================
+
+  sock.ev.on(
+    "creds.update",
+    saveCreds
+  );
+
+  // ========================================
+  // CONNECTION UPDATE
+  // ========================================
+
+  sock.ev.on(
+
+    "connection.update",
+
+    (update) => {
+
+      const {
+
+        connection,
+        qr,
+        lastDisconnect
+
+      } = update;
+
+      // ====================================
+      // QR
+      // ====================================
+
+      if (qr) {
 
         console.log(
-            "📦 Baileys version:",
-            version
+          "\n📱 ESCANEA QR\n"
         );
 
-        // ==================================
-        // AUTH
-        // ==================================
-
-        const {
-            state,
-            saveCreds
-        } = await useMultiFileAuthState(
-            "./auth"
+        qrcode.generate(
+          qr,
+          {
+            small: true
+          }
         );
 
-        // ==================================
-        // SOCKET
-        // ==================================
+      }
 
-        const sock = makeWASocket({
+      // ====================================
+      // OPEN
+      // ====================================
 
-            version,
+      if (
+        connection ===
+        "open"
+      ) {
 
-            auth: state,
+        console.log(
+          "✅ BOT CONECTADO"
+        );
 
-            logger: pino({
-                level: "silent"
-            }),
+        log({
 
-            browser: [
+          usuario: "Sistema",
 
-                "Ubuntu",
+          modulo: "Core",
 
-                "Chrome",
-
-                "22.04"
-
-            ],
-
-            syncFullHistory: false,
-
-            markOnlineOnConnect: false,
-
-            generateHighQualityLinkPreview: false
+          accion: "✅ BOT CONECTADO"
 
         });
 
-        // ==================================
-        // CREDS
-        // ==================================
+      }
 
-        sock.ev.on(
-            "creds.update",
-            saveCreds
-        );
+      // ====================================
+      // CLOSE
+      // ====================================
 
-        // ==================================
-        // CONNECTION
-        // ==================================
-
-        sock.ev.on(
-
-            "connection.update",
-
-            async (update) => {
-
-                const {
-
-                    connection,
-                    lastDisconnect,
-                    qr
-
-                } = update;
-
-                // ==========================
-                // QR
-                // ==========================
-
-                if (qr) {
-
-                    console.log(
-                        "\n📲 ESCANEA ESTE QR:\n"
-                    );
-
-                    qrcode.generate(
-                        qr,
-                        {
-                            small: true
-                        }
-                    );
-
-                }
-
-                // ==========================
-                // CONNECTED
-                // ==========================
-
-                if (
-                    connection === "open"
-                ) {
-
-                    console.log(
-                        "✅ BOT CONECTADO"
-                    );
-
-                    loggerService.log(
-                        "BOT CONECTADO"
-                    );
-
-                }
-
-                // ==========================
-                // CLOSE
-                // ==========================
-
-                if (
-                    connection === "close"
-                ) {
-
-                    const statusCode =
-
-                        lastDisconnect?.error
-                        ?.output
-                        ?.statusCode;
-
-                    console.log(
-                        "❌ Conexión cerrada"
-                    );
-
-                    console.log(
-                        lastDisconnect?.error
-                    );
-
-                    // ======================
-                    // LOGGED OUT
-                    // ======================
-
-                    if (
-                        statusCode ===
-                        DisconnectReason.loggedOut
-                    ) {
-
-                        console.log(
-                            "🚫 Sesión cerrada"
-                        );
-
-                        return;
-                    }
-
-                    // ======================
-                    // CONNECTION FAILURE
-                    // ======================
-
-                    if (
-                        statusCode === 405
-                    ) {
-
-                        console.log(
-                            "⚠️ WhatsApp rechazó temporalmente la conexión"
-                        );
-
-                        console.log(
-                            "⏳ Espera 1 minuto y vuelve a intentar"
-                        );
-
-                        return;
-                    }
-
-                    // ======================
-                    // NO LOOP
-                    // ======================
-
-                    console.log(
-                        "🛑 Reinicia manualmente"
-                    );
-
-                }
-
-            }
-
-        );
-
-        // ==================================
-        // MESSAGES
-        // ==================================
-
-        sock.ev.on(
-
-            "messages.upsert",
-
-            async ({ messages }) => {
-
-                try {
-
-                    const message =
-                        messages[0];
-
-                    if (
-                        !message.message
-                    ) {
-
-                        return;
-                    }
-
-                    if (
-                        message.key.remoteJid ===
-                        "status@broadcast"
-                    ) {
-
-                        return;
-                    }
-
-                    console.log(
-                        "📩 Nuevo mensaje"
-                    );
-
-                    await messageHandler(
-                        sock,
-                        message
-                    );
-
-                }
-
-                catch (error) {
-
-                    console.log(
-                        "❌ Error procesando mensaje"
-                    );
-
-                    console.log(error);
-
-                }
-
-            }
-
-        );
-
-    }
-
-    catch (error) {
+      if (
+        connection ===
+        "close"
+      ) {
 
         console.log(
-            "❌ Error iniciando bot"
+          "❌ DESCONECTADO"
         );
 
-        console.log(error);
+        console.log(
+          lastDisconnect?.error
+        );
+
+        log({
+
+          usuario: "Sistema",
+
+          modulo: "Core",
+
+          accion: "❌ DESCONECTADO"
+
+        });
+
+        const reconnect =
+
+          lastDisconnect
+            ?.error
+            ?.output
+            ?.statusCode
+
+          !==
+
+          DisconnectReason
+            .loggedOut;
+
+        // ==================================
+        // RECONNECT
+        // ==================================
+
+        if (reconnect) {
+
+          console.log(
+            "🔄 RECONECTANDO..."
+          );
+
+          log({
+
+            usuario: "Sistema",
+
+            modulo: "Core",
+
+            accion: "🔄 RECONECTANDO..."
+
+          });
+
+          startBot();
+
+        }
+
+      }
 
     }
+
+  );
+
+  // ========================================
+  // MESSAGES
+  // ========================================
+
+  sock.ev.on(
+
+    "messages.upsert",
+
+    async ({
+      messages,
+      type
+    }) => {
+
+      try {
+
+        // ==================================
+        // SOLO notify
+        // ==================================
+
+        if (
+          type !== "notify"
+        )
+          return;
+
+        const msg =
+          messages[0];
+
+        if (
+          !msg.message
+        )
+          return;
+
+        // ==================================
+        // IGNORAR MENSAJES BOT
+        // ==================================
+
+        if (
+          msg.key.fromMe
+        )
+          return;
+
+        // ==================================
+        // FROM
+        // ==================================
+
+        const from =
+          msg.key.remoteJid;
+
+        // ==================================
+        // TEXTO
+        // ==================================
+
+        const text =
+
+          msg.message
+            .conversation ||
+
+          msg.message
+            .extendedTextMessage
+            ?.text ||
+
+          "";
+
+        if (!text)
+          return;
+
+        // ==================================
+        // IGNORAR GRUPOS
+        // ==================================
+
+        if (
+          from.endsWith("@g.us")
+        ) {
+
+          return;
+
+        }
+
+        console.log(
+          "📩",
+          from,
+          text
+        );
+
+        // ==================================
+        // HANDLER
+        // ==================================
+
+        await messageHandler({
+
+          sock,
+          from,
+          text
+
+        });
+
+      }
+
+      catch (err) {
+
+        console.log(
+          "❌ ERROR MENSAJE"
+        );
+
+        console.log(err);
+
+      }
+
+    }
+
+  );
 
 }
 
