@@ -1,16 +1,13 @@
 const {
-
     default: makeWASocket,
     useMultiFileAuthState,
-    DisconnectReason
-
+    DisconnectReason,
+    fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
 
-const pino =
-    require("pino");
+const pino = require("pino");
 
-const qrcode =
-    require("qrcode-terminal");
+const qrcode = require("qrcode-terminal");
 
 const messageHandler =
     require("./handlers/messageHandler");
@@ -29,15 +26,28 @@ async function startBot() {
         console.log("🚀 Iniciando bot...");
 
         // ==================================
+        // VERSION
+        // ==================================
+
+        const {
+            version
+        } = await fetchLatestBaileysVersion();
+
+        console.log(
+            "📦 Baileys version:",
+            version
+        );
+
+        // ==================================
         // AUTH
         // ==================================
 
         const {
-
             state,
             saveCreds
-
-        } = await useMultiFileAuthState("./auth");
+        } = await useMultiFileAuthState(
+            "./auth"
+        );
 
         // ==================================
         // SOCKET
@@ -45,40 +55,43 @@ async function startBot() {
 
         const sock = makeWASocket({
 
+            version,
+
             auth: state,
 
             logger: pino({
-
                 level: "silent"
-
             }),
 
             browser: [
 
-                "Bot Restaurante",
+                "Ubuntu",
 
                 "Chrome",
 
-                "1.0.0"
+                "22.04"
 
-            ]
+            ],
+
+            syncFullHistory: false,
+
+            markOnlineOnConnect: false,
+
+            generateHighQualityLinkPreview: false
 
         });
 
         // ==================================
-        // SAVE CREDS
+        // CREDS
         // ==================================
 
         sock.ev.on(
-
             "creds.update",
-
             saveCreds
-
         );
 
         // ==================================
-        // CONNECTION UPDATE
+        // CONNECTION
         // ==================================
 
         sock.ev.on(
@@ -101,29 +114,30 @@ async function startBot() {
 
                 if (qr) {
 
-                    console.log("\n📲 ESCANEA ESTE QR:\n");
+                    console.log(
+                        "\n📲 ESCANEA ESTE QR:\n"
+                    );
 
                     qrcode.generate(
-
                         qr,
-
                         {
                             small: true
                         }
-
                     );
 
                 }
 
                 // ==========================
-                // OPEN
+                // CONNECTED
                 // ==========================
 
                 if (
                     connection === "open"
                 ) {
 
-                    console.log("✅ BOT CONECTADO");
+                    console.log(
+                        "✅ BOT CONECTADO"
+                    );
 
                     loggerService.log(
                         "BOT CONECTADO"
@@ -139,57 +153,62 @@ async function startBot() {
                     connection === "close"
                 ) {
 
-                    console.log("❌ Conexión cerrada");
-
-                    console.log(
+                    const statusCode =
 
                         lastDisconnect?.error
+                        ?.output
+                        ?.statusCode;
 
+                    console.log(
+                        "❌ Conexión cerrada"
                     );
 
-                    const shouldReconnect =
-
-                        lastDisconnect?.error?.output?.statusCode
-
-                        !==
-
-                        DisconnectReason.loggedOut;
-
-                    // ======================
-                    // RECONNECT
-                    // ======================
-
-                    if (
-                        shouldReconnect
-                    ) {
-
-                        console.log(
-
-                            "🔄 Reconectando en 5 segundos..."
-
-                        );
-
-                        setTimeout(() => {
-
-                            startBot();
-
-                        }, 5000);
-
-                    }
+                    console.log(
+                        lastDisconnect?.error
+                    );
 
                     // ======================
                     // LOGGED OUT
                     // ======================
 
-                    else {
+                    if (
+                        statusCode ===
+                        DisconnectReason.loggedOut
+                    ) {
 
                         console.log(
-
-                            "🚫 Sesión cerrada. Escanea QR nuevamente."
-
+                            "🚫 Sesión cerrada"
                         );
 
+                        return;
                     }
+
+                    // ======================
+                    // CONNECTION FAILURE
+                    // ======================
+
+                    if (
+                        statusCode === 405
+                    ) {
+
+                        console.log(
+                            "⚠️ WhatsApp rechazó temporalmente la conexión"
+                        );
+
+                        console.log(
+                            "⏳ Espera 1 minuto y vuelve a intentar"
+                        );
+
+                        return;
+                    }
+
+                    // ======================
+                    // NO LOOP
+                    // ======================
+
+                    console.log(
+                        "🛑 Reinicia manualmente"
+                    );
 
                 }
 
@@ -212,21 +231,12 @@ async function startBot() {
                     const message =
                         messages[0];
 
-                    // ======================
-                    // VALIDAR
-                    // ======================
-
                     if (
                         !message.message
                     ) {
 
                         return;
-
                     }
-
-                    // ======================
-                    // IGNORAR STATUS
-                    // ======================
 
                     if (
                         message.key.remoteJid ===
@@ -234,34 +244,23 @@ async function startBot() {
                     ) {
 
                         return;
-
                     }
 
-                    console.log("📩 Nuevo mensaje");
-
-                    // ======================
-                    // HANDLER
-                    // ======================
+                    console.log(
+                        "📩 Nuevo mensaje"
+                    );
 
                     await messageHandler(
-
                         sock,
                         message
-
                     );
 
                 }
 
-                // ==========================
-                // ERROR MENSAJE
-                // ==========================
-
                 catch (error) {
 
                     console.log(
-
                         "❌ Error procesando mensaje"
-
                     );
 
                     console.log(error);
@@ -274,16 +273,10 @@ async function startBot() {
 
     }
 
-    // ======================================
-    // ERROR START BOT
-    // ======================================
-
     catch (error) {
 
         console.log(
-
             "❌ Error iniciando bot"
-
         );
 
         console.log(error);
