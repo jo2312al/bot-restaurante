@@ -1,0 +1,51 @@
+name: Deploy Restaurante Bot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_ed25519
+
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -H 48.202.58.124 >> ~/.ssh/known_hosts
+
+      - name: Deploy files
+        run: |
+
+          rsync -avz --delete \
+          --exclude=node_modules \
+          --exclude=auth \
+          ./ jose@48.202.58.124:/home/jose/bot-restaurante/
+
+      - name: Install dependencies
+        run: |
+
+          ssh jose@48.202.58.124 "
+          cd /home/jose/bot-restaurante &&
+          npm install
+          "
+
+      - name: Restart PM2
+        run: |
+
+          ssh jose@48.202.58.124 "
+          pm2 restart bot-restaurante || pm2 start /home/jose/bot-restaurante/index.js --name bot-restaurante
+          "
