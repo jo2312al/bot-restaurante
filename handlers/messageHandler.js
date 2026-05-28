@@ -22,6 +22,15 @@ function getMessageText(message) {
 
 }
 
+function normalizeText(text) {
+
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+}
+
 function resetUser(from) {
 
     userState[from] = {
@@ -50,7 +59,7 @@ function isGreeting(text) {
 
 function isMenuCommand(text) {
 
-    return ["1", "menu", "menú", "ver menu", "ver menú"].includes(text);
+    return ["1", "menu", "ver menu"].includes(text);
 
 }
 
@@ -76,7 +85,12 @@ module.exports = async (sock, message) => {
     }
 
     const text = getMessageText(message);
-    const lower = text.toLowerCase();
+
+    if (!text) {
+        return;
+    }
+
+    const lower = normalizeText(text);
 
     loggerService.log(`Mensaje recibido de ${from}: ${lower}`);
 
@@ -84,14 +98,12 @@ module.exports = async (sock, message) => {
 
     if (isCancelCommand(lower)) {
         resetUser(from);
-        return sendMessage(sock, from, "❌ Pedido cancelado. Escribe hola para iniciar de nuevo.");
-    }
-
-    if (user.step) {
-        return roomServiceHandler(sock, from, text);
+        return sendMessage(sock, from, "Pedido cancelado. Escribe hola para iniciar de nuevo.");
     }
 
     if (isGreeting(lower)) {
+
+        resetUser(from);
 
         if (!scheduleService.isRoomServiceOpen()) {
             return sendMessage(sock, from, roomMessages.closedMessage);
@@ -103,13 +115,19 @@ module.exports = async (sock, message) => {
 
     if (isMenuCommand(lower)) {
 
+        resetUser(from);
+
         if (!scheduleService.isRoomServiceOpen()) {
             return sendMessage(sock, from, roomMessages.closedMessage);
         }
 
-        user.step = "SELECT_PRODUCT";
+        userState[from].step = "SELECT_PRODUCT";
         return sendMessage(sock, from, generateMenu());
 
+    }
+
+    if (user.step) {
+        return roomServiceHandler(sock, from, text);
     }
 
     if (lower === "2" || lower === "carrito" || lower === "ver carrito") {
@@ -119,7 +137,7 @@ module.exports = async (sock, message) => {
     if (lower === "3" || lower === "confirmar") {
 
         if (!user.cart.length) {
-            return sendMessage(sock, from, "🛒 Aún no tienes productos. Escribe menu para ver opciones.");
+            return sendMessage(sock, from, "Aun no tienes productos. Escribe menu para ver opciones.");
         }
 
         user.step = "WAITING_CONFIRM";
@@ -129,7 +147,7 @@ module.exports = async (sock, message) => {
 
     if (lower === "4") {
         resetUser(from);
-        return sendMessage(sock, from, "❌ Pedido cancelado. Escribe hola para iniciar de nuevo.");
+        return sendMessage(sock, from, "Pedido cancelado. Escribe hola para iniciar de nuevo.");
     }
 
     if (menu.some(product => product.id === lower)) {
@@ -146,7 +164,7 @@ module.exports = async (sock, message) => {
     return sendMessage(
         sock,
         from,
-        "No entendí tu mensaje.\n\nEscribe hola para iniciar, menu para ver productos o 0 para cancelar."
+        "No entendi tu mensaje.\n\nEscribe hola para iniciar, menu para ver productos o 0 para cancelar."
     );
 
 };

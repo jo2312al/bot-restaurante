@@ -1,4 +1,10 @@
+const { ROOM_SERVICE_FORCE_OPEN } = require("../config/config");
+
 function isRoomServiceOpen() {
+
+    if (ROOM_SERVICE_FORCE_OPEN) {
+        return true;
+    }
 
     const mexicoTime = new Date(
         new Date().toLocaleString("en-US", {
