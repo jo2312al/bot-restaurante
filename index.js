@@ -5,148 +5,84 @@ const {
   fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
 
-const pino =
-  require("pino");
+const pino = require("pino");
+const qrcode = require("qrcode-terminal");
 
-const qrcode =
-  require("qrcode-terminal");
+const { log } = require("./services/loggerService");
+const messageHandler = require("./handlers/messageHandler");
 
-const log =
-  require("./services/loggerService");
-
-const messageHandler =
-  require("./handlers/messageHandler");
-
-// ==========================================
-// DELAY
-// ==========================================
+const RECONNECT_DELAY_MS = 5000;
 
 function delay(ms) {
 
-  return new Promise(
-    resolve =>
-      setTimeout(resolve, ms)
-  );
+  return new Promise(resolve => setTimeout(resolve, ms));
 
 }
 
-// ==========================================
-// START BOT
-// ==========================================
-
 async function startBot() {
 
-  console.log(
-    "🚀 Iniciando bot restaurante..."
-  );
-
-  // ========================================
-  // AUTH
-  // ========================================
+  console.log("Iniciando bot restaurante...");
 
   const {
     state,
     saveCreds
-  } =
-    await useMultiFileAuthState(
-      "auth"
-    );
-
-  // ========================================
-  // VERSION
-  // ========================================
+  } = await useMultiFileAuthState("auth");
 
   const {
     version
-  } =
-    await fetchLatestBaileysVersion();
+  } = await fetchLatestBaileysVersion();
 
-  console.log(
-    "📦 Versión:",
-    version
-  );
+  console.log("Version de Baileys:", version);
+  console.log("Esperando codigo QR. Si ya hay una sesion activa en auth/, el bot conectara sin pedir QR.");
 
-  // ========================================
-  // SOCKET
-  // ========================================
+  const sock = makeWASocket({
 
-  const sock =
-    makeWASocket({
+    version,
 
-      version,
+    logger: pino({
+      level: "silent"
+    }),
 
-      logger: pino({
-        level: "silent"
-      }),
+    auth: state,
 
-      auth: state,
+    browser: [
+      "Bot Restaurante",
+      "Chrome",
+      "1.0"
+    ]
 
-      browser: [
+  });
 
-        "Bot Restaurante",
+  const originalSendMessage = sock.sendMessage.bind(sock);
 
-        "Chrome",
+  sock.sendMessage = async (...args) => {
 
-        "1.0"
+    await delay(1500);
 
-      ]
+    return originalSendMessage(...args);
 
-    });
-
-  // ========================================
-  // DELAY MENSAJES
-  // ========================================
-
-  const originalSendMessage =
-    sock.sendMessage.bind(sock);
-
-  sock.sendMessage =
-    async (...args) => {
-
-      await delay(1500);
-
-      return originalSendMessage(
-        ...args
-      );
-
-    };
-
-  // ========================================
-  // SAVE CREDS
-  // ========================================
+  };
 
   sock.ev.on(
     "creds.update",
     saveCreds
   );
 
-  // ========================================
-  // CONNECTION UPDATE
-  // ========================================
-
   sock.ev.on(
 
     "connection.update",
 
-    (update) => {
+    async (update) => {
 
       const {
-
         connection,
         qr,
         lastDisconnect
-
       } = update;
-
-      // ====================================
-      // QR
-      // ====================================
 
       if (qr) {
 
-        console.log(
-          "\n📱 ESCANEA QR\n"
-        );
+        console.log("\nESCANEA ESTE CODIGO QR CON WHATSAPP\n");
 
         qrcode.generate(
           qr,
@@ -157,91 +93,32 @@ async function startBot() {
 
       }
 
-      // ====================================
-      // OPEN
-      // ====================================
+      if (connection === "open") {
 
-      if (
-        connection ===
-        "open"
-      ) {
-
-        console.log(
-          "✅ BOT CONECTADO"
-        );
-
-        log({
-
-          usuario: "Sistema",
-
-          modulo: "Core",
-
-          accion: "✅ BOT CONECTADO"
-
-        });
+        console.log("BOT CONECTADO");
+        log("BOT CONECTADO");
 
       }
 
-      // ====================================
-      // CLOSE
-      // ====================================
+      if (connection === "close") {
 
-      if (
-        connection ===
-        "close"
-      ) {
-
-        console.log(
-          "❌ DESCONECTADO"
-        );
-
-        console.log(
-          lastDisconnect?.error
-        );
-
-        log({
-
-          usuario: "Sistema",
-
-          modulo: "Core",
-
-          accion: "❌ DESCONECTADO"
-
-        });
+        console.log("DESCONECTADO");
+        console.log(lastDisconnect?.error);
+        log("DESCONECTADO");
 
         const reconnect =
-
           lastDisconnect
             ?.error
             ?.output
-            ?.statusCode
-
-          !==
-
-          DisconnectReason
-            .loggedOut;
-
-        // ==================================
-        // RECONNECT
-        // ==================================
+            ?.statusCode !== DisconnectReason.loggedOut;
 
         if (reconnect) {
 
-          console.log(
-            "🔄 RECONECTANDO..."
-          );
+          console.log(`RECONECTANDO EN ${RECONNECT_DELAY_MS / 1000} SEGUNDOS...`);
+          log(`RECONECTANDO EN ${RECONNECT_DELAY_MS / 1000} SEGUNDOS...`);
 
-          log({
-
-            usuario: "Sistema",
-
-            modulo: "Core",
-
-            accion: "🔄 RECONECTANDO..."
-
-          });
-
-          startBot();
+          await delay(RECONNECT_DELAY_MS);
+          startBot().catch(handleStartupError);
 
         }
 
@@ -250,10 +127,6 @@ async function startBot() {
     }
 
   );
-
-  // ========================================
-  // MESSAGES
-  // ========================================
 
   sock.ev.on(
 
@@ -266,95 +139,28 @@ async function startBot() {
 
       try {
 
-        // ==================================
-        // SOLO notify
-        // ==================================
-
-        if (
-          type !== "notify"
-        )
+        if (type !== "notify") {
           return;
-
-        const msg =
-          messages[0];
-
-        if (
-          !msg.message
-        )
-          return;
-
-        // ==================================
-        // IGNORAR MENSAJES BOT
-        // ==================================
-
-        if (
-          msg.key.fromMe
-        )
-          return;
-
-        // ==================================
-        // FROM
-        // ==================================
-
-        const from =
-          msg.key.remoteJid;
-
-        // ==================================
-        // TEXTO
-        // ==================================
-
-        const text =
-
-          msg.message
-            .conversation ||
-
-          msg.message
-            .extendedTextMessage
-            ?.text ||
-
-          "";
-
-        if (!text)
-          return;
-
-        // ==================================
-        // IGNORAR GRUPOS
-        // ==================================
-
-        if (
-          from.endsWith("@g.us")
-        ) {
-
-          return;
-
         }
 
-        console.log(
-          "📩",
-          from,
-          text
-        );
+        const msg = messages[0];
 
-        // ==================================
-        // HANDLER
-        // ==================================
+        if (!msg?.message || msg.key.fromMe) {
+          return;
+        }
 
-        await messageHandler({
+        console.log("Mensaje recibido:", msg.key.remoteJid);
 
+        await messageHandler(
           sock,
-          from,
-          text
-
-        });
+          msg
+        );
 
       }
 
       catch (err) {
 
-        console.log(
-          "❌ ERROR MENSAJE"
-        );
-
+        console.log("ERROR MENSAJE");
         console.log(err);
 
       }
@@ -365,8 +171,12 @@ async function startBot() {
 
 }
 
-// ==========================================
-// INIT
-// ==========================================
+function handleStartupError(err) {
 
-startBot();
+  console.log("ERROR AL INICIAR BOT");
+  console.log(err);
+  log(`ERROR AL INICIAR BOT: ${err.message}`);
+
+}
+
+startBot().catch(handleStartupError);
