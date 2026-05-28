@@ -1,42 +1,54 @@
 const menu = require("../data/menu");
 
-function generateMenu() {
+function getCategories() {
 
-    const grouped = {};
+    return [...new Set(menu.map(item => item.category))];
 
-    menu.forEach(item => {
+}
 
-        if (!grouped[item.category]) {
-            grouped[item.category] = [];
-        }
+function getProductsByCategory(category) {
 
-        grouped[item.category].push(item);
+    return menu.filter(item => item.category === category);
 
+}
+
+function generateCategoryMenu() {
+
+    const categories = getCategories();
+
+    let text = "MENU ROOM SERVICE\n\n";
+    text += "Elige una categoria:\n\n";
+
+    categories.forEach((category, index) => {
+        text += `${index + 1}. ${category}\n`;
     });
 
-    let text = "🍽️ MENÚ ROOM SERVICE\n\n";
+    text += "\nTambien puedes escribir: carrito, confirmar o 0 para cancelar.";
 
-    Object.keys(grouped).forEach(category => {
+    return text;
 
-        text += `📌 ${category}\n`;
+}
 
-        grouped[category].forEach(item => {
+function generateProductsMenu(category) {
 
-            text += `${item.id}. ${item.name} - $${item.price}\n`;
+    const products = getProductsByCategory(category);
 
-        });
+    let text = `${category}\n\n`;
 
-        text += "\n";
-
+    products.forEach((item, index) => {
+        text += `${index + 1}. ${item.name} - $${item.price}\n`;
     });
 
-    text += "Responde con el número del producto.\n";
-    text += "También puedes escribir: carrito, confirmar, menu o 0 para cancelar.";
+    text += "\nResponde con el numero del producto.";
+    text += "\nEscribe categorias para volver, carrito, confirmar o 0 para cancelar.";
 
     return text;
 
 }
 
 module.exports = {
-    generateMenu
+    generateCategoryMenu,
+    generateProductsMenu,
+    getCategories,
+    getProductsByCategory
 };

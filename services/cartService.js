@@ -21,10 +21,10 @@ function calculateTotal(cart) {
 function formatCart(cart) {
 
     if (!cart.length) {
-        return "🛒 Tu carrito está vacío.\n\nEscribe menu para ver productos.";
+        return "Tu carrito esta vacio.\n\nEscribe menu para ver categorias.";
     }
 
-    let text = "🛒 TU PEDIDO\n\n";
+    let text = "TU PEDIDO\n\n";
 
     cart.forEach((item, index) => {
 
@@ -36,8 +36,8 @@ function formatCart(cart) {
 
     });
 
-    text += `\n💰 TOTAL: $${calculateTotal(cart)}\n\n`;
-    text += "Escribe confirmar para finalizar, menu para agregar más o 0 para cancelar.";
+    text += `\nTOTAL: $${calculateTotal(cart)}\n\n`;
+    text += "Escribe confirmar para finalizar, menu para agregar mas o 0 para cancelar.";
 
     return text;
 

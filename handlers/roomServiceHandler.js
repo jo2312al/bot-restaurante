@@ -17,7 +17,21 @@ const {
 const { sendMessage } = require("../services/whatsappService");
 const { GROUP_ID } = require("../config/config");
 const messages = require("../messages/roomMessages");
-const { generateMenu } = require("../flows/roomServiceFlow");
+const { log } = require("../services/loggerService");
+const {
+    generateCategoryMenu,
+    generateProductsMenu,
+    getCategories
+} = require("../flows/roomServiceFlow");
+
+function normalizeText(text) {
+
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+}
 
 function clearTempProduct(user) {
 
@@ -26,7 +40,7 @@ function clearTempProduct(user) {
 
 }
 
-function addTempProductToCart(user, note = "") {
+function addTempProductToCart(user, from, note = "") {
 
     addToCart(user.cart, {
         ...user.tempProduct,
@@ -34,21 +48,40 @@ function addTempProductToCart(user, note = "") {
         note
     });
 
+    log(`Carrito actualizado ${from}: ${user.cart.length} producto(s)`);
+
     clearTempProduct(user);
-    user.step = "SELECT_PRODUCT";
+    user.step = "SELECT_CATEGORY";
+    delete user.selectedCategory;
 
 }
 
 function nextActionMessage(user) {
 
     return [
-        "✅ Producto agregado al carrito.",
+        "Producto agregado al carrito.",
         "",
         formatCart(user.cart),
         "",
-        "Para agregar otro producto, escribe su número.",
-        "Para ver el menú completo, escribe menu."
+        generateCategoryMenu()
     ].join("\n");
+
+}
+
+function findProductByInput(user, input) {
+
+    const categoryProducts =
+        user.selectedCategory
+            ? menu.filter(item => item.category === user.selectedCategory)
+            : [];
+
+    const localProduct = categoryProducts[Number(input) - 1];
+
+    return (
+        localProduct ||
+        categoryProducts.find(item => item.id === input) ||
+        menu.find(item => item.id === input)
+    );
 
 }
 
@@ -56,36 +89,59 @@ async function roomServiceHandler(sock, from, text) {
 
     const user = userState[from];
     const rawText = String(text || "").trim();
-    const lower = rawText.toLowerCase();
+    const lower = normalizeText(rawText);
+
+    if (["menu", "categorias", "categoria", "ver menu", "ver categorias"].includes(lower)) {
+        user.step = "SELECT_CATEGORY";
+        delete user.selectedCategory;
+        return sendMessage(sock, from, generateCategoryMenu());
+    }
+
+    if (["carrito", "ver carrito"].includes(lower)) {
+        return sendMessage(sock, from, formatCart(user.cart));
+    }
+
+    if (["confirmar", "finalizar", "pedido"].includes(lower)) {
+
+        if (!user.cart.length) {
+            return sendMessage(sock, from, "Aun no tienes productos. Elige una categoria para empezar.");
+        }
+
+        user.step = "WAITING_CONFIRM";
+        return sendMessage(sock, from, `${formatCart(user.cart)}\n\n${messages.confirmOrder}`);
+
+    }
+
+    if (user.step === "SELECT_CATEGORY") {
+
+        const categories = getCategories();
+        const categoryIndex = Number(lower) - 1;
+        const category = categories[categoryIndex];
+
+        if (!category) {
+            return sendMessage(
+                sock,
+                from,
+                `Categoria invalida.\n\n${generateCategoryMenu()}`
+            );
+        }
+
+        user.selectedCategory = category;
+        user.step = "SELECT_PRODUCT";
+
+        return sendMessage(sock, from, generateProductsMenu(category));
+
+    }
 
     if (user.step === "SELECT_PRODUCT") {
 
-        if (["menu", "menú", "ver menu", "ver menú"].includes(lower)) {
-            return sendMessage(sock, from, generateMenu());
-        }
-
-        if (["carrito", "ver carrito"].includes(lower)) {
-            return sendMessage(sock, from, formatCart(user.cart));
-        }
-
-        if (["confirmar", "finalizar", "pedido"].includes(lower)) {
-
-            if (!user.cart.length) {
-                return sendMessage(sock, from, "🛒 Aún no tienes productos. Responde con el número de un producto.");
-            }
-
-            user.step = "WAITING_CONFIRM";
-            return sendMessage(sock, from, `${formatCart(user.cart)}\n\n${messages.confirmOrder}`);
-
-        }
-
-        const product = menu.find(item => item.id === lower);
+        const product = findProductByInput(user, lower);
 
         if (!product) {
             return sendMessage(
                 sock,
                 from,
-                "❌ Producto inválido.\n\nResponde con un número del menú, carrito, confirmar, menu o 0 para cancelar."
+                "Producto invalido.\n\nResponde con un numero del menu, categorias, carrito, confirmar o 0 para cancelar."
             );
         }
 
@@ -121,13 +177,13 @@ async function roomServiceHandler(sock, from, text) {
 
     if (user.step === "WAITING_NOTE_OPTION") {
 
-        if (["1", "si", "sí", "con nota"].includes(lower)) {
+        if (["1", "si", "con nota"].includes(lower)) {
             user.step = "WAITING_NOTE_TEXT";
             return sendMessage(sock, from, messages.askNoteText);
         }
 
         if (["2", "no", "sin nota"].includes(lower)) {
-            addTempProductToCart(user);
+            addTempProductToCart(user, from);
             return sendMessage(sock, from, nextActionMessage(user));
         }
 
@@ -137,20 +193,16 @@ async function roomServiceHandler(sock, from, text) {
 
     if (user.step === "WAITING_NOTE_TEXT") {
 
-        addTempProductToCart(user, rawText);
+        addTempProductToCart(user, from, rawText);
         return sendMessage(sock, from, nextActionMessage(user));
 
     }
 
     if (user.step === "WAITING_CONFIRM") {
 
-        if (["carrito", "ver carrito"].includes(lower)) {
-            return sendMessage(sock, from, `${formatCart(user.cart)}\n\n${messages.confirmOrder}`);
-        }
-
-        if (["1", "si", "sí", "confirmar"].includes(lower)) {
+        if (["1", "si", "confirmar"].includes(lower)) {
             user.step = "WAITING_ROOM";
-            return sendMessage(sock, from, "🏨 Escribe tu número de habitación.");
+            return sendMessage(sock, from, "Escribe tu numero de habitacion.");
         }
 
         if (["2", "no", "cancelar"].includes(lower)) {
@@ -158,7 +210,8 @@ async function roomServiceHandler(sock, from, text) {
             clearTempProduct(user);
             user.step = null;
             user.data = {};
-            return sendMessage(sock, from, "❌ Pedido cancelado. Escribe menu para iniciar uno nuevo.");
+            delete user.selectedCategory;
+            return sendMessage(sock, from, "Pedido cancelado. Escribe menu para iniciar uno nuevo.");
         }
 
         return sendMessage(sock, from, messages.confirmOrder);
@@ -168,20 +221,20 @@ async function roomServiceHandler(sock, from, text) {
     if (user.step === "WAITING_ROOM") {
 
         if (!validateRoom(rawText)) {
-            return sendMessage(sock, from, "❌ Número de habitación inválido. Usa solo números.");
+            return sendMessage(sock, from, "Numero de habitacion invalido. Usa solo numeros.");
         }
 
         user.data.room = rawText;
         user.step = "WAITING_NAME";
 
-        return sendMessage(sock, from, "👤 Escribe tu nombre completo.");
+        return sendMessage(sock, from, "Escribe tu nombre completo.");
 
     }
 
     if (user.step === "WAITING_NAME") {
 
         if (!validateName(rawText)) {
-            return sendMessage(sock, from, "❌ Nombre inválido. Escribe nombre y apellido.");
+            return sendMessage(sock, from, "Nombre invalido. Escribe nombre y apellido.");
         }
 
         user.data.name = rawText;
@@ -189,12 +242,12 @@ async function roomServiceHandler(sock, from, text) {
         const total = calculateTotal(user.cart);
 
         let orderText = [
-            "🍽️ NUEVO PEDIDO",
+            "NUEVO PEDIDO",
             "",
-            `🏨 Habitación: ${user.data.room}`,
-            `👤 Cliente: ${user.data.name}`,
+            `Habitacion: ${user.data.room}`,
+            `Cliente: ${user.data.name}`,
             "",
-            "🛒 PEDIDO",
+            "PEDIDO",
             ""
         ].join("\n");
 
@@ -208,14 +261,14 @@ async function roomServiceHandler(sock, from, text) {
 
         });
 
-        orderText += `\n💰 TOTAL: $${total}\n\n⏳ Tiempo estimado: 30-40 minutos`;
+        orderText += `\nTOTAL: $${total}\n\nTiempo estimado: 30-40 minutos`;
 
         await sendMessage(sock, GROUP_ID, orderText);
 
         await sendMessage(
             sock,
             from,
-            `✅ PEDIDO CONFIRMADO\n\n💰 TOTAL: $${total}\n\n⏳ Tiempo estimado: 30-40 minutos`
+            `PEDIDO CONFIRMADO\n\nTOTAL: $${total}\n\nTiempo estimado: 30-40 minutos`
         );
 
         userState[from] = {

@@ -5,7 +5,7 @@ const scheduleService = require("../services/scheduleService");
 const roomMessages = require("../messages/roomMessages");
 const menu = require("../data/menu");
 
-const { generateMenu } = require("../flows/roomServiceFlow");
+const { generateCategoryMenu } = require("../flows/roomServiceFlow");
 const roomServiceHandler = require("./roomServiceHandler");
 const { sendMessage } = require("../services/whatsappService");
 const { formatCart } = require("../services/cartService");
@@ -113,21 +113,19 @@ module.exports = async (sock, message) => {
 
     }
 
-    if (isMenuCommand(lower)) {
+    if (user.step) {
+        return roomServiceHandler(sock, from, text);
+    }
 
-        resetUser(from);
+    if (isMenuCommand(lower)) {
 
         if (!scheduleService.isRoomServiceOpen()) {
             return sendMessage(sock, from, roomMessages.closedMessage);
         }
 
-        userState[from].step = "SELECT_PRODUCT";
-        return sendMessage(sock, from, generateMenu());
+        user.step = "SELECT_CATEGORY";
+        return sendMessage(sock, from, generateCategoryMenu());
 
-    }
-
-    if (user.step) {
-        return roomServiceHandler(sock, from, text);
     }
 
     if (lower === "2" || lower === "carrito" || lower === "ver carrito") {
@@ -157,6 +155,7 @@ module.exports = async (sock, message) => {
         }
 
         user.step = "SELECT_PRODUCT";
+        user.selectedCategory = null;
         return roomServiceHandler(sock, from, text);
 
     }
