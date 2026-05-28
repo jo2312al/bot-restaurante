@@ -5,12 +5,15 @@ const {
   fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
 
+const fs = require("fs");
+const path = require("path");
 const pino = require("pino");
 const qrcode = require("qrcode-terminal");
 
 const { log } = require("./services/loggerService");
 const messageHandler = require("./handlers/messageHandler");
 
+const AUTH_DIR = path.join(__dirname, "auth");
 const RECONNECT_DELAY_MS = 5000;
 
 function delay(ms) {
@@ -26,7 +29,7 @@ async function startBot() {
   const {
     state,
     saveCreds
-  } = await useMultiFileAuthState("auth");
+  } = await useMultiFileAuthState(AUTH_DIR);
 
   const {
     version
@@ -112,6 +115,18 @@ async function startBot() {
             ?.output
             ?.statusCode !== DisconnectReason.loggedOut;
 
+        if (!reconnect) {
+
+          console.log("SESION INVALIDA. LIMPIANDO AUTH PARA GENERAR QR NUEVO...");
+          log("SESION INVALIDA. LIMPIANDO AUTH PARA GENERAR QR NUEVO...");
+          resetAuthSession();
+
+          await delay(RECONNECT_DELAY_MS);
+          startBot().catch(handleStartupError);
+          return;
+
+        }
+
         if (reconnect) {
 
           console.log(`RECONECTANDO EN ${RECONNECT_DELAY_MS / 1000} SEGUNDOS...`);
@@ -167,6 +182,18 @@ async function startBot() {
 
     }
 
+  );
+
+}
+
+function resetAuthSession() {
+
+  fs.rmSync(
+    AUTH_DIR,
+    {
+      force: true,
+      recursive: true
+    }
   );
 
 }
