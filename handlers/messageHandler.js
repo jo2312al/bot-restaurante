@@ -98,7 +98,7 @@ module.exports = async (sock, message) => {
 
     if (isCancelCommand(lower)) {
         resetUser(from);
-        return sendMessage(sock, from, "Pedido cancelado. Escribe hola para iniciar de nuevo.");
+        return sendMessage(sock, from, "❌ Pedido cancelado.\n\n👋 Escribe *hola* para iniciar de nuevo.");
     }
 
     if (isGreeting(lower)) {
@@ -135,7 +135,7 @@ module.exports = async (sock, message) => {
     if (lower === "3" || lower === "confirmar") {
 
         if (!user.cart.length) {
-            return sendMessage(sock, from, "Aun no tienes productos. Escribe menu para ver opciones.");
+            return sendMessage(sock, from, "🛒 Aun no tienes productos.\n\n📋 Escribe *menu* para ver opciones.");
         }
 
         user.step = "WAITING_CONFIRM";
@@ -145,7 +145,7 @@ module.exports = async (sock, message) => {
 
     if (lower === "4") {
         resetUser(from);
-        return sendMessage(sock, from, "Pedido cancelado. Escribe hola para iniciar de nuevo.");
+        return sendMessage(sock, from, "❌ Pedido cancelado.\n\n👋 Escribe *hola* para iniciar de nuevo.");
     }
 
     if (menu.some(product => product.id === lower)) {
@@ -163,7 +163,7 @@ module.exports = async (sock, message) => {
     return sendMessage(
         sock,
         from,
-        "No entendi tu mensaje.\n\nEscribe hola para iniciar, menu para ver productos o 0 para cancelar."
+        "🤔 No entendi tu mensaje.\n\n👋 Escribe *hola* para iniciar.\n📋 Escribe *menu* para ver productos.\n❌ Escribe *0* para cancelar."
     );
 
 };

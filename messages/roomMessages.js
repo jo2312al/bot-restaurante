@@ -1,57 +1,57 @@
 module.exports = {
 
     mainMenu: `
-SERVICIO A LA HABITACION
+🍽️ *SERVICIO A LA HABITACION*
 
-Que deseas hacer?
+✨ ¿Que deseas hacer?
 
-1. Ver menu
-2. Ver carrito
-3. Confirmar pedido
-4. Cancelar pedido
+1️⃣ 📋 Ver menu
+2️⃣ 🛒 Ver carrito
+3️⃣ ✅ Confirmar pedido
+4️⃣ ❌ Cancelar pedido
 `,
 
     closedMessage: `
-Servicio a la habitacion cerrado
+⚠️ *Servicio a la habitacion cerrado*
 
-Horario:
+🕒 *Horario:*
 
-7:00 AM - 12:00 PM
-6:00 PM - 11:00 PM
+🌞 7:00 AM - 12:00 PM
+🌙 6:00 PM - 11:00 PM
 `,
 
     askQuantity: `
-Cuantas deseas?
+🔢 ¿Cuantas piezas u ordenes deseas?
 `,
 
     invalidQuantity: `
-Cantidad invalida
+⚠️ *Cantidad invalida*
 
 Escribe un numero del 1 al 10.
 `,
 
     askNote: `
-Deseas agregar una nota al platillo?
+📝 ¿Deseas agregar una nota al platillo?
 
-1. Si, agregar nota
-2. No, continuar
+1️⃣ Si, agregar nota
+2️⃣ No, continuar
 `,
 
     askNoteText: `
-Escribe tu nota
+✍️ Escribe tu nota
 
 Ejemplos:
-sin queso
-sin crema
-sin cebolla
-sin picante
+🧀 sin queso
+🥛 sin crema
+🧅 sin cebolla
+🌶️ sin picante
 `,
 
     confirmOrder: `
-Confirmas tu pedido?
+✅ ¿Confirmas tu pedido?
 
-1. Confirmar
-2. Cancelar
+1️⃣ Confirmar
+2️⃣ Cancelar
 `
 
 };

@@ -12,18 +12,35 @@ function getProductsByCategory(category) {
 
 }
 
+function categoryIcon(category) {
+
+    const icons = {
+        "Desayunos": "🍳",
+        "Antojitos": "🌮",
+        "Especialidades tabasquenas": "🌶️",
+        "Comida o cena": "🍽️",
+        "Medias ordenes": "🥖",
+        "Bebidas": "🥤"
+    };
+
+    return icons[category] || "📌";
+
+}
+
 function generateCategoryMenu() {
 
     const categories = getCategories();
 
-    let text = "MENU ROOM SERVICE\n\n";
-    text += "Elige una categoria:\n\n";
+    let text = "📋 *MENU ROOM SERVICE*\n\n";
+    text += "✨ Elige una categoria:\n\n";
 
     categories.forEach((category, index) => {
-        text += `${index + 1}. ${category}\n`;
+        text += `${index + 1}️⃣ ${categoryIcon(category)} ${category}\n`;
     });
 
-    text += "\nTambien puedes escribir: carrito, confirmar o 0 para cancelar.";
+    text += "\n🛒 Escribe *carrito* para ver tu pedido.";
+    text += "\n✅ Escribe *confirmar* para terminar.";
+    text += "\n❌ Escribe *0* para cancelar.";
 
     return text;
 
@@ -33,14 +50,15 @@ function generateProductsMenu(category) {
 
     const products = getProductsByCategory(category);
 
-    let text = `${category}\n\n`;
+    let text = `${categoryIcon(category)} *${category}*\n\n`;
 
     products.forEach((item, index) => {
-        text += `${index + 1}. ${item.name} - $${item.price}\n`;
+        text += `${index + 1}. 🍽️ ${item.name} - $${item.price}\n`;
     });
 
-    text += "\nResponde con el numero del producto.";
-    text += "\nEscribe categorias para volver, carrito, confirmar o 0 para cancelar.";
+    text += "\n🔢 Responde con el numero del producto.";
+    text += "\n📋 Escribe *categorias* para volver.";
+    text += "\n🛒 Escribe *carrito*, ✅ *confirmar* o ❌ *0*.";
 
     return text;
 

@@ -19,10 +19,9 @@ function validateRoom(room) {
 function validateName(name) {
 
     const trimmedName = String(name).trim();
-    const regex = /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s'.-]+$/;
     const words = trimmedName.split(/\s+/);
 
-    return regex.test(trimmedName) && words.length >= 2;
+    return trimmedName.length >= 4 && words.length >= 2;
 
 }
 
